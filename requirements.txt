@@ -1,0 +1,10 @@
+streamlit
+pandas
+numpy
+nltk
+gensim
+pyLDAvis
+matplotlib
+seaborn
+wordcloud
+streamlit-option-menu
