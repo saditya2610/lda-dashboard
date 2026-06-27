@@ -159,16 +159,6 @@ def train_lda_model(_corpus_tfidf, _dictionary, k):
                          random_state=42, passes=5, iterations=100, alpha='auto')
     return lda_model
 
-# --- INISIALISASI DATA UTAMA ---
-filepath = "dataset_riset_Data Science-Semantic Scholer.csv"
-try:
-    df_raw, df_clean, df_predatory, num_predatory = load_and_clean_data(filepath)
-    df_clean, dictionary, corpus_tf, corpus_tfidf, clean_docs = build_nlp_pipeline(df_clean)
-except Exception as e:
-    st.error(f"Gagal memuat atau memproses dataset: {e}")
-    st.stop()
-
-
 # --- SIDEBAR INTERAKTIF ---
 with st.sidebar:
     st.markdown("""
@@ -177,6 +167,12 @@ with st.sidebar:
         <div style='color: #bee3f8; font-size: 0.85rem; font-weight: 600;'>Bibliometric Evolution Engine</div>
     </div>
     """, unsafe_allow_html=True)
+    
+    st.markdown("<div style='color: white; font-weight: 700; margin-bottom: 0.5rem; padding-left: 1rem;'>📁 Data Sumber</div>", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Upload CSV Dataset", type=["csv"], help="Format harus CSV dan memiliki kolom 'Abstract'.")
+    use_default = st.checkbox("Gunakan Dataset Bawaan", value=False)
+    
+    st.markdown("<hr style='border-top: 1px solid rgba(255, 255, 255, 0.15); margin: 1.5rem 1rem 1.5rem 1rem;'>", unsafe_allow_html=True)
     
     selected_tab = option_menu(
         menu_title=None,
@@ -206,6 +202,29 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+
+# --- INISIALISASI DATA UTAMA ---
+data_source = None
+if uploaded_file is not None:
+    data_source = uploaded_file
+elif use_default:
+    data_source = "dataset_riset_Data Science-Semantic Scholer.csv"
+
+if data_source is None:
+    st.markdown("""
+    <div style='padding: 3rem; text-align: center; background-color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-top: 2rem;'>
+        <h2 style='color: #2b6cb0; margin-bottom: 1rem;'>👋 Selamat Datang di Temporal LDA Engine</h2>
+        <p style='color: #4a5568; font-size: 1.1rem;'>Silakan unggah dataset berformat CSV melalui panel <b>Sidebar di sebelah kiri</b> untuk memulai analisis topik.<br><br>Atau Anda dapat mencentang opsi <b>'Gunakan Dataset Bawaan'</b> untuk melihat demonstrasi.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.stop()
+
+try:
+    df_raw, df_clean, df_predatory, num_predatory = load_and_clean_data(data_source)
+    df_clean, dictionary, corpus_tf, corpus_tfidf, clean_docs = build_nlp_pipeline(df_clean)
+except Exception as e:
+    st.error(f"Gagal memuat atau memproses dataset. Pastikan dataset CSV Anda memiliki struktur yang sesuai.\\n\\nError Detail: {e}")
+    st.stop()
 
 # --- MELATIH MODEL BERDASARKAN K SLIDER ---
 lda_model = train_lda_model(corpus_tfidf, dictionary, optimal_k)
