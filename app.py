@@ -329,10 +329,13 @@ elif selected_tab == "Jalur Migrasi Riset":
         # Filter mulai dari 2017 ke atas
         temporal_topics = temporal_topics[temporal_topics.index >= 2017]
         temporal_perc = temporal_topics.div(temporal_topics.sum(axis=1), axis=0) * 100
-        return temporal_perc
+        
+        temporal_counts = _df.groupby(['Year', 'dominant_topic']).size().reset_index(name='Count')
+        temporal_counts = temporal_counts[temporal_counts['Year'] >= 2017].sort_values(by=['Year', 'dominant_topic'])
+        return temporal_perc, temporal_counts
         
     with st.spinner("Menghitung data tren evolusi temporal..."):
-        temporal_perc = get_temporal_data(df_clean.copy(), lda_model, corpus_tfidf)
+        temporal_perc, temporal_counts = get_temporal_data(df_clean.copy(), lda_model, corpus_tfidf)
     
     st.markdown("""
     <div class='modern-card'>
@@ -371,9 +374,7 @@ elif selected_tab == "Jalur Migrasi Riset":
 
     # --- SANKEY DIAGRAM ---
     st.markdown("<div class='modern-card'><div class='card-title'>Jalur Migrasi Topik (Sankey Diagram)</div>", unsafe_allow_html=True)
-    
-    temporal_counts = df_clean.groupby(['Year', 'dominant_topic']).size().reset_index(name='Count')
-    temporal_counts = temporal_counts[temporal_counts['Year'] >= 2017].sort_values(by=['Year', 'dominant_topic'])
+
     
     years = sorted(temporal_counts['Year'].unique().tolist())
     topics_id = sorted(temporal_counts['dominant_topic'].unique().tolist())
