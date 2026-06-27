@@ -16,6 +16,7 @@ import seaborn as sns
 from wordcloud import WordCloud
 import streamlit.components.v1 as components
 from streamlit_option_menu import option_menu
+import plotly.graph_objects as go
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -135,10 +136,15 @@ def build_nlp_pipeline(df_clean):
 
     docs = df_clean['Abstract'].apply(preprocess_basic).tolist()
 
-    # Bigram (Phrase ID)
+    # Bigram & Trigram (Phrase ID)
     bigram = Phrases(docs, min_count=3, threshold=10)
     bigram_mod = Phraser(bigram)
-    clean_docs = [bigram_mod[doc] for doc in docs]
+    
+    docs_bigram = [bigram_mod[doc] for doc in docs]
+    trigram = Phrases(docs_bigram, min_count=3, threshold=10)
+    trigram_mod = Phraser(trigram)
+    
+    clean_docs = [trigram_mod[doc] for doc in docs_bigram]
     df_clean['clean_tokens'] = clean_docs
     
     # Dictionary & Corpus
@@ -361,4 +367,40 @@ elif selected_tab == "Jalur Migrasi Riset":
     ax_heat.set_xlabel('ID Topik', weight='bold', labelpad=10, color='#2d3748')
     ax_heat.set_ylabel('Tahun', weight='bold', labelpad=10, color='#2d3748')
     st.pyplot(fig_heat, transparent=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # --- SANKEY DIAGRAM ---
+    st.markdown("<div class='modern-card'><div class='card-title'>Jalur Migrasi Topik (Sankey Diagram)</div>", unsafe_allow_html=True)
+    
+    temporal_counts = df_clean.groupby(['Year', 'dominant_topic']).size().reset_index(name='Count')
+    temporal_counts = temporal_counts[temporal_counts['Year'] >= 2017].sort_values(by=['Year', 'dominant_topic'])
+    
+    years = sorted(temporal_counts['Year'].unique().tolist())
+    topics_id = sorted(temporal_counts['dominant_topic'].unique().tolist())
+    
+    labels = [str(y) for y in years] + [f"Topik {t}" for t in topics_id]
+    label_map = {name: i for i, name in enumerate(labels)}
+    
+    source = [label_map[str(row['Year'])] for _, row in temporal_counts.iterrows()]
+    target = [label_map[f"Topik {row['dominant_topic']}"] for _, row in temporal_counts.iterrows()]
+    value = [row['Count'] for _, row in temporal_counts.iterrows()]
+        
+    fig_sankey = go.Figure(data=[go.Sankey(
+        node = dict(
+          pad = 15,
+          thickness = 20,
+          line = dict(color = "black", width = 0.5),
+          label = labels,
+          color = "#3182ce"
+        ),
+        link = dict(
+          source = source,
+          target = target,
+          value = value,
+          color = "rgba(160, 174, 192, 0.4)"
+        )
+    )])
+    fig_sankey.update_layout(title_text="Aliran Proporsi Publikasi dari Tahun ke Topik Laten", font_size=12, height=550, margin=dict(l=20, r=20, t=40, b=20))
+    st.plotly_chart(fig_sankey, use_container_width=True)
+    
     st.markdown("</div>", unsafe_allow_html=True)
